@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+cd ~/rpmbuild/SPECS
+
+for spec in *.spec; do
+    for source_url in `rpmspec -P "$spec" | egrep '^Source[0-9]+:' | grep https | awk '{print $2}'`; do
+        echo "Downloading $source_url"
+        curl -LO "$source_url"
+    done
+    find . -type f -not -name '*.spec' -exec mv {} ../SOURCES/ \;
+    rpmbuild -bs --define "_source_filedigest_algorithm md5" --define "_binary_filedigest_algorithm md5" --define "dist .el5" $spec
+done
+
