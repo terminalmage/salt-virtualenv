@@ -32,13 +32,8 @@ However, to make it as easy as possible, this repo contains everything needed to
 
 Here's how to set up the Docker-based build environment and build the RPMs:
 
-### 1) Clone the repo
 
-```
-% git clone https://github.com/terminalmage/salt-virtualenv
-```
-
-### 2) Create a data-only container
+### 1) Create a data-only container
 
 This provides persistent storage for the mock cache. We'll use it later on.
 
@@ -51,18 +46,19 @@ Digest: sha256:29f5d56d12684887bdfa50dcd29fc31eea4aaf4ad3bec43daf19026a7ce69912
 Status: Downloaded newer image for busybox:latest
 ```
 
-### 3) Build the Docker image (optional)
+### 2) Clone the repo and build the Docker image (optional)
 
-Most users can skip this step and just use [terminalmage/salt-virtualenv](https://hub.docker.com/r/terminalmage/salt-virtualenv/), but for those who modify the Dockerfile in some way, you'll want to make sure to build the new image.
+Most users can skip this step and just use the publicly available [terminalmage/salt-virtualenv](https://hub.docker.com/r/terminalmage/salt-virtualenv/) image from the Docker Hub, but for those who need to modify the Dockerfile in some way, you'll want to make sure to build the new image.
 
 ```
-% cd /path/to/git/clone/salt-virtualenv
+% git clone https://github.com/terminalmage/salt-virtualenv
+% cd salt-virtualenv/salt-virtualenv
 % sudo docker build -t myusername/salt-virtualenv .
 ```
 
 If you do this, you'll need to replace all occurrences of ``terminalmage/salt-virtualenv`` below with the tag you used when you built the image.
 
-### 4) Create a local destination for the packages we'll be building
+### 3) Create a local destination for the packages we'll be building
 
 This will be bound to ``/home/builder/mock`` in the Docker image when we run it.
 
@@ -72,7 +68,7 @@ This will be bound to ``/home/builder/mock`` in the Docker image when we run it.
 
 You don't have to use ``~/mock``, but if you do use something different, then you'll of course need to replace occurrences of ``~/mock`` with the location you choose.
 
-### 5) Launch an instance of the build image
+### 4) Launch an instance of the build image
 
 ```
 % sudo docker run --cap-add=SYS_ADMIN --privileged --volumes-from=mock-cache --rm -it -h rpmbuild -v ~/mock:/home/builder/mock terminalmage/salt-virtualenv
@@ -84,9 +80,9 @@ You don't have to use ``~/mock``, but if you do use something different, then yo
 - ``~/mock`` should be replaced with whatever path you chose for the package destination, if it was different.
 
 
-### 6) RHEL/CentOS 5 build requisites
+### 5) RHEL/CentOS 5 build requisites
 
-Those not building for RHEL/CentOS 5 can skip to Step 7.
+Those not building for RHEL/CentOS 5 can skip to Step 6.
 
 For RHEL/CentOS 5 our RPM spec requires a couple of packages not available in EPEL. So, we'll need to build these first. There's a helper script that will do this for you, all you need to do is run it:
 
@@ -94,17 +90,17 @@ For RHEL/CentOS 5 our RPM spec requires a couple of packages not available in EP
 [builder@rpmbuild ~]$ build-reqs
 ```
 
-When complete, the build requisites will be located under ``/home/builder/mock``. This is where all the packages we build here will end up. If you've been following the directions so far, these packages will end up in ``~/mock`` (or whichever path you chose) on the host machine.
+When complete, the build requisites will be located under ``/home/builder/mock``. This is where all the packages we build here will end up. If you've been following the directions so far, these packages will end up in ``~/mock`` (or whichever path you chose in Step 3) on the host machine.
 
 This should only be done the first time, since you'll already have them in your ``~/mock`` dir the next time.
 
-### 7) Build the RPMs
+### 6) Build the RPMs
 
-When you started the Docker image, a message displayed which describes aliases that have been pre-configured to make building easy. If you missed this message, it can be viewed [here](https://github.com/terminalmage/salt-virtualenv/blob/master/salt-virtualenv/motd), or by running ``cat /etc/motd`` within the container.
+When you start the Docker image, a message is displayed which describes aliases that have been pre-configured to make building easy. If you missed this message, it can be viewed [here](https://github.com/terminalmage/salt-virtualenv/blob/master/salt-virtualenv/motd), or by running ``cat /etc/motd`` within the container.
 
 The aliases are [here](https://github.com/terminalmage/salt-virtualenv/blob/master/salt-virtualenv/aliases). The build commands use a ``mockbuild`` script I wrote a while back to automate some of the more mundane arguments one needs to enter when using ``mock``.
 
-### 8) Back on the host machine, retrieve packages from the local ``mock`` directory you created in Step 4
+### 7) Back on the host machine, retrieve packages from the local ``mock`` directory you created in Step 3
 
 ```
 % cd ~/mock/salt/2016.3.4-2.el5_erik/x86_64
@@ -123,4 +119,4 @@ total 26436
 -rw-rw-r-- 1 erik erik      962 Nov 13 16:32 state.log
 ```
 
-### 9) Profit!
+### 8) Profit!
