@@ -1,3 +1,5 @@
+_NOTE: This repo has been deleted and recreated. If you cloned it before 15 November 2016 @21:30 UTC, you should re-clone._
+
 ## Who is responsible for this?!?!
 
 My name is Erik Johnson, and I'm a Senior Engineer on the core development team at [SaltStack](https://saltstack.com). If you've participated in the community between early 2012 and today, then there's a good chance we've interacted in some way. Hopefully I haven't been a jerk to you.
