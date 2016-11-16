@@ -43,7 +43,7 @@ Status: Downloaded newer image for busybox:latest
 
 ### 2) Clone the repo and build the Docker image (optional)
 
-Most users can skip this step and just use the publicly available [terminalmage/salt-virtualenv](https://hub.docker.com/r/terminalmage/salt-virtualenv/) image from the Docker Hub, but for those who need to modify the Dockerfile in some way, you'll want to make sure to build the new image.
+Most users can skip this step and just use the publicly available [terminalmage/salt-virtualenv](https://hub.docker.com/r/terminalmage/salt-virtualenv/) image from the Docker Hub, but for those who need to modify the Dockerfile or the specs/sources in some way, you'll want to make sure to rebuild the image.
 
 ```
 % git clone https://github.com/terminalmage/salt-virtualenv
