@@ -1,2 +1,3 @@
 /salt-virtualenv/rpmbuild/SOURCES/*.tar.*
+/salt-virtualenv/rpmbuild/SOURCES/*.zip
 /salt-virtualenv/ius/*.rpm
