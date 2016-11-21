@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+set -e
+
+for release in 5 6; do
+    filename="ius${release}.rpm"
+    if test -f "$filename"; then
+        echo "$filename exists, skipping"
+    else
+        wget -O "$filename" https://centos${release}.iuscommunity.org/ius-release.rpm
+    fi
+done

@@ -1,7 +1,7 @@
 FROM fedora:24
 
 # Install packages
-RUN dnf -y install mock rpm-build vim-enhanced curl man man-pages less
+RUN dnf -y install mock rpm-build vim-enhanced wget man man-pages less
 
 # Add a non-privileged user and add to mock group so it has build privs
 RUN useradd -m builder
@@ -17,31 +17,37 @@ set laststatus=2' >>/home/builder/.vimrc
 RUN echo "_topdir /home/builder/rpmbuild" >/home/builder/.rpmmacros
 RUN mkdir -p /home/builder/{bin,mock} /home/builder/rpmbuild/{BUILD,BUILDROOT,SOURCES,SPECS,SRPMS,RPMS}
 
-# Add some information to login profile
-#RUN echo "test -f ~/.aliases && source ~/.aliases" >>~/.bash_profile
+# Add a block to the .bashrc to clear the existing aliases and compile
+# the build aliases.
+RUN echo $'\n\
+for alias_name in $(alias | cut -f1 -d"=" | cut -f2 -d" "); do\n\
+    unalias $alias_name\n\
+done\n\
+\n\
+eval $(~/bin/gen-aliases)' >> /home/builder/.bashrc
 
-# Copy files
-COPY motd /etc/motd
-COPY aliases /home/builder/
+# Copy scripts
 COPY bin/* /home/builder/bin/
-COPY rpmbuild/SPECS/* /home/builder/rpmbuild/SPECS/
-COPY rpmbuild/SOURCES/* /home/builder/rpmbuild/SOURCES/
 
-# Add aliases to bashrc
-RUN cat /home/builder/aliases >>/home/builder/.bashrc
-RUN rm /home/builder/aliases
+# Add IUS repo defs to mock config
+COPY ius/* /ius/
+RUN /ius/add-ius
+RUN rm -rf /ius
+
+COPY rpmbuild/SOURCES/* /home/builder/rpmbuild/SOURCES/
+COPY rpmbuild/SPECS/* /home/builder/rpmbuild/SPECS/
 
 # Fix ownership
-USER root
 RUN chown -R builder:builder /home/builder
 
-# Download sources
-RUN su - builder -c "get-sources"
+# Build SRPMs
+RUN su - builder -c build-srpms
 
 # Built packages will go here
-VOLUME mock
+VOLUME /home/builder/mock
 
-# Back to the builder user and prep for container to be started in interactive mode
+# Back to the builder user and prep for container to be started in
+# interactive mode
 USER builder
 WORKDIR /home/builder
-CMD cat /etc/motd; /bin/bash -l
+CMD /bin/bash -l

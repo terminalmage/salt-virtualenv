@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+. ~/bin/funcs
+
+for release in ${RELEASES[@]}; do
+    eval deps=(\"\${DEPS_EL$release\[@\]}\")
+    for dep in "${deps[@]}"; do
+        srpm=$(find_rpm "$dep" "$SRPM_DIR")
+        test -n "$srpm" || continue
+        dest="${MOCK_DIR}/${dep}/el${release}"
+        test -d "$dest" || mkdir -p "$dest"
+        resultdir="--resultdir=$dest"
+        root="--root=epel-${release}-x86_64"
+        $MOCK $root $resultdir "$srpm"
+    done
+done

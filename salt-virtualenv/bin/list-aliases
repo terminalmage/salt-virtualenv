@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# Pull in the aliases
+eval $(~/bin/gen-aliases 2>/dev/null)
+
+alias | cut -f1 -d'=' | cut -f2 -d' ' | egrep '^build-' | sort -r

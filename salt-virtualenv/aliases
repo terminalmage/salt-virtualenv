@@ -1,5 +1,0 @@
-alias build-5-x86_64="mockbuild -r epel-5-x86_64 -s ~/rpmbuild/SRPMS/salt-2016.3.4-2.el5_erik.src.rpm -d 'dist .el5' -i ~/mock/python26-distribute/0.6.49-1.el5/x86_64/python26-distribute-0.6.49-1.el5.noarch.rpm -i ~/mock/python26-virtualenv/15.0.3-1.el5/x86_64/python26-virtualenv-15.0.3-1.el5.noarch.rpm"
-alias build-5-i386="mockbuild -r epel-5-i386 -s ~/rpmbuild/SRPMS/salt-2016.3.4-2.el5_erik.src.rpm -d 'dist .el5' -i ~/mock/python26-distribute/0.6.49-1.el5/x86_64/python26-distribute-0.6.49-1.el5.noarch.rpm -i ~/mock/python26-virtualenv/15.0.3-1.el5/x86_64/python26-virtualenv-15.0.3-1.el5.noarch.rpm"
-alias build-6-x86_64="mockbuild -r epel-6-x86_64 -s ~/rpmbuild/SRPMS/salt-2016.3.4-2.el5_erik.src.rpm -d 'dist .el6'"
-alias build-6-i386="mockbuild -r epel-6-i386 -s ~/rpmbuild/SRPMS/salt-2016.3.4-2.el5_erik.src.rpm -d 'dist .el6'"
-alias build-7-x86_64="mockbuild -r epel-7-x86_64 -s ~/rpmbuild/SRPMS/salt-2016.3.4-2.el5_erik.src.rpm -d 'dist .el7'"

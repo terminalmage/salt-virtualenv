@@ -1,0 +1,179 @@
+#!/usr/bin/env sh
+
+# This file contains common data/functions used by the helper scripts
+
+shopt -s nullglob
+
+MOCK=/usr/bin/mock
+MOCK_DIR="$HOME/mock"
+SRPM_DIR="$HOME/rpmbuild/SRPMS"
+RELEASES=(5 6 7)
+BITS=(32 64)
+DEPS_EL5=()
+DEPS_EL6=()
+DEPS_EL7=()
+
+function _log {
+    echo "${1}: $2" 1>&2
+}
+
+function WARN {
+    _log WARNING "$1"
+}
+
+function INFO {
+    _log INFO "$1"
+}
+
+function find_rpm {
+    local pkg_name pkg_dir pkg_arch
+    pkg_name=$1
+    pkg_dir=$2
+    pkg_arch=$3
+
+    if ! test -d "$pkg_dir"; then
+        WARN "Directory $pkg_dir not found"
+        return 1
+    fi
+
+    local candidates
+    if test -z "$pkg_arch"; then
+        # Looking for a source RPM
+        candidates=(${pkg_dir}/${pkg_name}-*.src.rpm)
+    else
+        # Looking for an arch-specific or noarch RPM
+        candidates=(${pkg_dir}/${pkg_name}-*.${pkg_arch}.rpm ${pkg_dir}/${pkg_name}-*.noarch.rpm)
+    fi
+    local matches=()
+    # Inspect each candidate package to confirm that the name is
+    # an exact match. This keeps us from matching subpackages which
+    # start with $pkg_name (e.g. "foo-devel" when we only want "foo").
+    for candidate in "${candidates[@]}"; do
+        real_name=$(rpm -qp --qf '%{name}' "$candidate" 2>/dev/null)
+        if test "$real_name" == "$pkg_name"; then
+            matches=("${matches[@]}" "$candidate")
+        fi
+    done
+    num_matches=${#matches[@]}
+    if test $num_matches -eq 0; then
+        WARN "No RPMs matching $pkg_name in $pkg_dir"
+        return 1
+    elif test $num_matches -gt 1; then
+        INFO "$num_matches matches found for $pkg_name in $pkg_dir"
+    fi
+    echo ${matches[-1]}
+}
+
+function startswith { case "$1" in "$2"*) true;; *) false;; esac }
+
+function endswith { case "$1" in *"$2") true;; *) false;; esac }
+
+function join {
+    local joiner="$1"; shift;
+    local result item
+    for item in "$@"; do
+        result="${result}${item}${joiner}"
+    done
+    echo ${result::-${#joiner}}
+}
+
+function gen_aliases {
+    local retcode=0
+    local release key
+    for release in "${RELEASES[@]}"; do
+        local resultdir="--resultdir=${MOCK_DIR}/salt/el${release}"
+        local bits
+        for bits in "${BITS[@]}"; do
+            # No 32-bit builds for EL7
+            test $release -eq 7 && test $bits -eq 32 && continue
+            local mock_arch
+            local pkg_arch
+            if test $bits -eq 32; then
+                mock_arch=i386
+                if test $release -eq 5; then
+                    pkg_arch=i386
+                else
+                    pkg_arch=i686
+                fi
+            else
+                mock_arch=x86_64
+                pkg_arch=x86_64
+            fi
+            local root="--root=epel-${release}-${mock_arch}"
+            local alias_cmd="$MOCK $root --init"
+            eval local deps=(\"\${DEPS_EL${release}\[@\]}\")
+            local rpms=()
+            # Initialize the mock chroot
+            alias_cmd=
+            if test ${#deps[@]} -ne 0; then
+                local pkg_name
+                for pkg_name in "${deps[@]}"; do
+                    local pkg_dir="${MOCK_DIR}/${pkg_name}/el${release}"
+                    found=$(find_rpm "$pkg_name" "$pkg_dir" "$pkg_arch")
+                    test $? -eq 0 || retcode=1
+                    test -n "$found" && rpms=("${rpms[@]}" "$found")
+                done
+                # Skip this alias if we weren't able to find the deps
+                # targets. No need to log anything here because the failure to
+                # find using find_rpm will have logged a warning.
+                test ${#rpms[@]} -eq ${#deps[@]} || continue
+                alias_cmd="$MOCK $root --init && $MOCK $root"
+                local item
+                for item in "${rpms[@]}"; do
+                    alias_cmd="$alias_cmd --install \"$item\""
+                done
+                alias_cmd="$alias_cmd && "
+            fi
+            alias_cmd="${alias_cmd}${MOCK} $root $resultdir --no-cleanup-after"
+            alias_cmd="$alias_cmd \"$srpm\""
+            aliases[el${release}-${bits}]=$alias_cmd
+        done
+        local all_in_release=()
+        # All builds by release
+        for key in "${!aliases[@]}"; do
+            if startswith "$key" "el${release}"; then
+                all_in_release=("${all_in_release[@]}" "${aliases[$key]}")
+            fi
+        done
+        if test ${#all_in_release[@]} -ne 0; then
+            aliases[all-el${release}]=$(join " && " "${all_in_release[@]}")
+        fi
+    done
+    if test ${#aliases[@]} -ne 0; then
+        local all_builds=()
+        for bits in "${BITS[@]}"; do
+            eval local all_$bits
+        done
+        for key in "${!aliases[@]}"; do
+            for bits in "${BITS[@]}"; do
+                if endswith "$key" "$bits"; then
+                    eval all_${bits}=\(\"\${all_${bits}\[@\]}\" \"\${aliases\[$key\]}\"\)
+                fi
+            done
+            for release in "${RELEASES[@]}"; do
+                if test "$key" == "all-el${release}"; then
+                    all_builds=("${all_builds[@]}" "${aliases[$key]}")
+                fi
+            done
+        done
+        for bits in "${BITS[@]}"; do
+            local joined
+	    eval joined=\$\(join \" \&\& \" \"\${all_${bits}\[@\]}\"\)
+            test -n "$joined" && aliases[all-$bits]="$joined"
+        done
+        if test ${#all_builds[@]} -ne 0; then
+            aliases[all]=$(join " && " "${all_builds[@]}")
+        fi
+    fi
+    return $retcode
+}
+
+function echo_aliases {
+    local key
+    for build_alias in $(alias | cut -f1 -d'=' | cut -f2 -d' ' | egrep '^build-' | sort -r); do
+        echo "unalias ${build_alias};"
+    done
+    for key in "${!aliases[@]}"; do
+        echo "alias build-${key}='${aliases[$key]}';"
+    done
+}

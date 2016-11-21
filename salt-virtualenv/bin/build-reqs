@@ -1,8 +1,0 @@
-#!/usr/bin/env sh
-
-cd ~/rpmbuild/SRPMS
-
-for srpm in {python26-distribute,python26-virtualenv}*.src.rpm; do
-    mockbuild -r epel-5-x86_64 -s "$srpm" -d 'dist .el5'
-done
-

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+. ~/bin/funcs
+
+problem=false
+declare -A aliases
+srpm=$(find_rpm salt "$SRPM_DIR")
+
+test $? -eq 0 || problem=true
+
+if test -n "$srpm"; then
+    gen_aliases
+    test $? -eq 0 || problem=true
+fi
+
+if $problem; then
+    echo "
+One or more problems were encountered during the process of compiling the build
+aliases. The warnings above should help in troubleshooting. This message is
+normal to see the first time this container is launched. If any build
+dependencies are missing, run \"build-deps\" to build them. Once built, either
+run \"eval \$(gen-aliases)\" or re-launch the container to regenerate the build
+aliases." 1>&2
+fi
+
+if test ${#aliases[@]} -ne 0; then
+    echo "
+Welcome to this nifty little build container! Aliases have been set up to make
+building packages super easy. The following aliases are available, and should
+be self-explanatory:
+" 1>&2
+    sorted_keys=($(IFS=$'\n'; sort -r <<<"${!aliases[*]}"; unset IFS;))
+    for key in ${sorted_keys[@]}; do
+        echo "build-${key}" 1>&2
+    done
+    echo 1>&2
+fi
+
+echo_aliases
+
+exit 0

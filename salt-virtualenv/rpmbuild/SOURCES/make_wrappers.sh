@@ -5,6 +5,8 @@ function _usage {
     exit 1
 }
 
+test "`uname -m`" == "x86_64" && libdir=lib64 || libdir=lib
+
 # Defaults
 py_version=2.7
 mode="0755"
@@ -32,8 +34,6 @@ for wrapper in $wrappers; do
     echo -n "making ${full_path}... "
     cat <<@EOF >"$full_path"
 #!/bin/sh
-
-export PYTHONPATH=${virtualenv_path}/lib/python${py_version}/site-packages:/usr/lib/python${py_version}/site-packages:/usr/lib64/python${py_version}/site-packages
 
 ${virtualenv_path}/bin/python ${virtualenv_path}/bin/$wrapper "\$@"
 

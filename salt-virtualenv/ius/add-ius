@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+
+set -e
+
+IUS_KEY_DIR=/usr/share/distribution-gpg-keys/ius
+
+for release in 5 6; do
+    cd /ius
+    # Make subdir into which RPM will be unpacked
+    path=ius${release}
+    mkdir $path
+    cd $path
+    # Unpack RPM
+    rpm2cpio ../${path}.rpm | cpio -idm
+    for arch in i386 x86_64; do
+        # Copy mock config and remove last line. It is a Python multi-line
+        # string terminator, which we will replace when done.
+        head -n -1 /etc/mock/epel-${release}-${arch}.cfg >temp
+        # Add a blank line for separation
+        echo >>temp
+        # Copy IUS repo defs with GPG key path rewritten
+        sed -e "s#/etc/pki/rpm-gpg#$IUS_KEY_DIR#" < etc/yum.repos.d/ius.repo >>temp
+        # Add back multi-line string terminator
+        echo '"""' >>temp
+        # Backup mock config
+        mv /etc/mock/epel-${release}-${arch}.cfg /etc/mock/epel-${release}-${arch}.cfg.bak
+        # Replace with modified config
+        mv temp /etc/mock/epel-${release}-${arch}.cfg
+    done
+    # Copy the GPG key
+    if ! test -d $IUS_KEY_DIR; then
+        mkdir -p $IUS_KEY_DIR
+        cp etc/pki/rpm-gpg/IUS-COMMUNITY-GPG-KEY $IUS_KEY_DIR
+    fi
+done
