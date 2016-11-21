@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 for spec in ../SPECS/*.spec; do
-    sources=$(egrep '^Source[0-9]+:' "$spec" | grep https | awk '{print $2}')
+    sources=$(egrep '^Source[0-9]+:' "$spec" | egrep 'https?' | awk '{print $2}')
     if test -z "$sources"; then
         echo "No sources found in $spec" 1>&2
         exit 1
